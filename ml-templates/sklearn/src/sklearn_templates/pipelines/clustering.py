@@ -1,14 +1,14 @@
-from ..classification import get_classification_template
+from ..clustering import get_clustering_template
 
 
-def build_classification_pipeline(
+def build_clustering_pipeline(
     model_name,
     preprocessor,
     model_config=None,
 ):
     model_config = model_config or {}
 
-    template = get_classification_template(
+    template = get_clustering_template(
         model_name=model_name,
         preprocessor=preprocessor,
         model_config=model_config,
