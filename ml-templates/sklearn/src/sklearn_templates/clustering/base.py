@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from xml.parsers.expat import model
 from sklearn.pipeline import Pipeline
 
 
@@ -33,12 +34,11 @@ class ClusteringTemplate(ABC):
             raise RuntimeError("Pipeline has not been built.")
 
         model = self.pipeline.named_steps["model"]
+
         if not hasattr(model, "predict"):
             raise NotImplementedError(
-                f"{model.__class__.__name__} does not support predict() on new data; "
-                f"use fit_predict() instead."
+                f"{model.__class__.__name__} does not support predict()."
             )
-
         return self.pipeline.predict(X)
 
     def fit_predict(self, X):

@@ -7,7 +7,7 @@ class LogisticRegressionTemplate(ClassificationTemplate):
     def build_estimator(self):
         return LogisticRegression(
             C=self.model_config.get("C", 1.0),
-            l1_ratio=self.model_config.get("l1_ratio", 0),   # 0 = l2, 1 = l1, None = elasticnet
+            penalty=self.model_config.get("penalty", "l2"),
             solver=self.model_config.get("solver", "lbfgs"),
             max_iter=self.model_config.get("max_iter", 1000),
             class_weight=self.model_config.get("class_weight", None),
