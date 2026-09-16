@@ -15,7 +15,7 @@ from typing import Any
 
 import yaml
 
-from .training_spec import TrainingSpec
+from planner.models.training_spec import TrainingSpec
 
 
 class TrainingSpecYAMLError(ValueError):

@@ -1,7 +1,4 @@
-from unittest.mock import patch
-
 import pytest
-
 from ..exceptions import LLMConfigurationError
 from ..prompt import PlannerPrompt
 from .litellm_provider import LiteLLMProvider
@@ -68,6 +65,7 @@ def test_provider_sends_prompt_to_litellm():
         temperature=0.2,
         api_key="test-key",
         max_tokens=500,
+        response_format={"type": "json_object"},
     )
 
 
@@ -96,6 +94,7 @@ def test_provider_omits_optional_arguments_when_not_configured():
             },
         ],
         temperature=0.0,
+        response_format={"type": "json_object"},
     )
 
 

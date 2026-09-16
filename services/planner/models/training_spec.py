@@ -13,7 +13,13 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import Any
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 
 class TaskType(str, Enum):
@@ -54,10 +60,12 @@ class TaskSpec(BaseModel):
 
 class FeatureSpec(BaseModel):
     """
-    Defines which dataset features should be available to the pipeline.
+    Defines the resolved dataset features available to the pipeline.
 
-    If ``include`` is None, all eligible features are considered unless
-    explicitly excluded.
+    ``numerical`` and ``categorical`` are resolved by the Planner from
+    DatasetProfile and are consumed by the Pipeline Compiler.
+
+    ``include`` and ``exclude`` describe feature selection intent.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -65,7 +73,10 @@ class FeatureSpec(BaseModel):
     include: list[str] | None = None
     exclude: list[str] = Field(default_factory=list)
 
-    @field_validator("include", "exclude")
+    numerical: list[str] = Field(default_factory=list)
+    categorical: list[str] = Field(default_factory=list)
+
+    @field_validator("include", "exclude", "numerical", "categorical")
     @classmethod
     def validate_feature_names(
         cls,
@@ -85,6 +96,18 @@ class FeatureSpec(BaseModel):
 
         return cleaned
 
+    @model_validator(mode="after")
+    def validate_feature_type_overlap(self):
+        """Ensure a feature cannot be both numerical and categorical."""
+        overlap = set(self.numerical) & set(self.categorical)
+
+        if overlap:
+            raise ValueError(
+                "Features cannot be both numerical and categorical: "
+                f"{sorted(overlap)}"
+            )
+
+        return self
 
 class PreprocessingStep(BaseModel):
     """

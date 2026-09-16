@@ -107,3 +107,27 @@ def test_invalid_dataset_profile_type_is_rejected() -> None:
         match="dataset_profile must be a Pydantic model or dictionary",
     ):
         PlannerPromptBuilder().build(context)
+
+def test_prompt_includes_resolved_feature_fields():
+    prompt = PlannerPromptBuilder().build(make_context())
+
+    assert '"numerical": []' in prompt.system
+    assert '"categorical": []' in prompt.system
+    assert "features.numerical" in prompt.user
+    assert "features.categorical" in prompt.user
+
+
+def test_prompt_requires_feature_types_to_come_from_dataset_profile():
+    prompt = PlannerPromptBuilder().build(make_context())
+
+    assert "Use the DatasetProfile to determine the type" in prompt.system
+    assert "must not overlap" in prompt.system
+    assert "must not be included in the feature lists" in prompt.system
+
+
+def test_prompt_includes_training_spec_schema():
+    prompt = PlannerPromptBuilder().build(make_context())
+
+    assert "TRAININGSPEC SCHEMA" in prompt.user
+    assert '"numerical"' in prompt.user
+    assert '"categorical"' in prompt.user

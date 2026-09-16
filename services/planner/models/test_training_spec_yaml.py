@@ -7,7 +7,7 @@ import yaml
 from pydantic import ValidationError
 
 from .test_training_spec import make_valid_training_spec
-from .training_spec import TrainingSpec
+from planner.models.training_spec import TrainingSpec
 from .training_spec_yaml import (
     TrainingSpecYAMLError,
     load_training_spec_yaml,

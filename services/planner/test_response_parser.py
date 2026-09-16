@@ -6,7 +6,7 @@ import pytest
 
 from .exceptions import LLMResponseError, PlannerValidationError
 from .models.planner_result import PlannerResult
-from .models.test_training_spec import make_valid_training_spec
+from planner.models.test_training_spec import make_valid_training_spec
 from .response_parser import PlannerResponseParser
 
 
@@ -131,3 +131,100 @@ def test_unsupported_response_type_is_rejected() -> None:
         match="Unsupported LLM response type",
     ):
         parser.parse(12345)
+
+def test_parser_preserves_resolved_feature_types():
+    response = {
+        "recommendations": [],
+        "proposed_spec": {
+            "spec_version": "1.0",
+            "task": {
+                "type": "classification",
+                "target": "target",
+            },
+            "features": {
+                "include": None,
+                "exclude": [],
+                "numerical": ["age", "income"],
+                "categorical": ["city", "occupation"],
+            },
+            "preprocessing": {
+                "steps": [],
+            },
+            "split": {
+                "strategy": "random",
+                "test_size": 0.2,
+                "validation_size": 0.1,
+            },
+            "model": {
+                "template": "sklearn",
+                "algorithm": "random_forest",
+                "hyperparameters": {},
+            },
+            "evaluation": {
+                "primary_metric": "accuracy",
+                "metrics": ["accuracy"],
+            },
+            "resources": {},
+            "reproducibility": {
+                "random_seed": 42,
+            },
+        },
+        "requires_approval": False,
+    }
+
+    result = PlannerResponseParser().parse(response)
+
+    assert result.proposed_spec.features.numerical == [
+        "age",
+        "income",
+    ]
+    assert result.proposed_spec.features.categorical == [
+        "city",
+        "occupation",
+    ]
+
+def test_parser_rejects_overlapping_feature_types():
+    response = {
+        "recommendations": [],
+        "proposed_spec": {
+            "spec_version": "1.0",
+            "task": {
+                "type": "classification",
+                "target": "target",
+            },
+            "features": {
+                "include": None,
+                "exclude": [],
+                "numerical": ["age"],
+                "categorical": ["age"],
+            },
+            "preprocessing": {
+                "steps": [],
+            },
+            "split": {
+                "strategy": "random",
+                "test_size": 0.2,
+                "validation_size": 0.1,
+            },
+            "model": {
+                "template": "sklearn",
+                "algorithm": "random_forest",
+                "hyperparameters": {},
+            },
+            "evaluation": {
+                "primary_metric": "accuracy",
+                "metrics": ["accuracy"],
+            },
+            "resources": {},
+            "reproducibility": {
+                "random_seed": 42,
+            },
+        },
+        "requires_approval": False,
+    }
+
+    with pytest.raises(
+        PlannerValidationError,
+        match="Features cannot be both numerical and categorical",
+    ):
+        PlannerResponseParser().parse(response)

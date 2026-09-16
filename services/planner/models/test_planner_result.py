@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from .planner_result import PlannerResult
 from .recommendation import Recommendation, RecommendationType
-from .test_training_spec import make_valid_training_spec
+from planner.models.test_training_spec import make_valid_training_spec
 
 
 def make_valid_planner_result() -> PlannerResult:

@@ -1,7 +1,7 @@
 """Pydantic models used by the AIForge Planner."""
 from .recommendation import Recommendation, RecommendationType
 from .planner_result import PlannerResult
-from .training_spec import (
+from planner.models.training_spec import (
     EvaluationSpec,
     FeatureSpec,
     ModelSpec,

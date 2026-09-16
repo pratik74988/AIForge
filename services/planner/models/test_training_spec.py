@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from .training_spec import (
+from planner.models.training_spec import (
     EvaluationSpec,
     FeatureSpec,
     ModelSpec,
@@ -259,3 +259,65 @@ def test_training_spec_round_trip() -> None:
     reconstructed = TrainingSpec.model_validate(data)
 
     assert reconstructed == spec
+
+import pytest
+
+from planner.models.training_spec import FeatureSpec
+
+
+def test_feature_spec_accepts_numerical_and_categorical_features():
+    features = FeatureSpec(
+        numerical=["age", "income"],
+        categorical=["city", "occupation"],
+    )
+
+    assert features.numerical == ["age", "income"]
+    assert features.categorical == ["city", "occupation"]
+
+
+def test_feature_spec_rejects_overlap_between_feature_types():
+    with pytest.raises(
+        ValueError,
+        match="Features cannot be both numerical and categorical",
+    ):
+        FeatureSpec(
+            numerical=["age", "income"],
+            categorical=["age", "city"],
+        )
+
+
+def test_feature_spec_rejects_empty_numerical_feature_name():
+    with pytest.raises(
+        ValueError,
+        match="Feature names must not be empty",
+    ):
+        FeatureSpec(
+            numerical=["age", "  "],
+        )
+
+
+def test_feature_spec_rejects_duplicate_numerical_features():
+    with pytest.raises(
+        ValueError,
+        match="Feature names must be unique",
+    ):
+        FeatureSpec(
+            numerical=["age", "age"],
+        )
+
+
+def test_feature_spec_rejects_duplicate_categorical_features():
+    with pytest.raises(
+        ValueError,
+        match="Feature names must be unique",
+    ):
+        FeatureSpec(
+            categorical=["city", "city"],
+        )
+
+
+def test_feature_spec_defaults_to_empty_feature_type_lists():
+    features = FeatureSpec()
+
+    assert features.numerical == []
+    assert features.categorical == []

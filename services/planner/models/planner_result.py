@@ -14,7 +14,7 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field
 
 from .recommendation import Recommendation
-from .training_spec import TrainingSpec
+from planner.models.training_spec import TrainingSpec
 
 
 class PlannerResult(BaseModel):

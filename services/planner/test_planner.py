@@ -31,6 +31,8 @@ def make_result() -> PlannerResult:
                 "features": {
                     "include": None,
                     "exclude": [],
+                    "numerical": ["age", "income"],
+                    "categorical": ["city"],
                 },
                 "preprocessing": {
                     "steps": [],
@@ -141,3 +143,23 @@ def test_planner_does_not_require_knowledge_service():
     planner.plan(context)
 
     llm_service.generate.assert_called_once_with(context)
+
+
+def test_planner_preserves_resolved_feature_types():
+    llm_service = Mock()
+    llm_service.generate.return_value = make_result()
+
+    planner = Planner(llm_service=llm_service)
+
+    result = planner.plan(make_context())
+
+    spec = result.proposed_spec
+
+    assert spec.features.numerical == [
+        "age",
+        "income",
+    ]
+
+    assert spec.features.categorical == [
+        "city",
+    ]

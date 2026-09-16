@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from .context import PlanningContext
 from .models.planner_result import PlannerResult
 
+
 @dataclass(frozen=True)
 class PlannerPrompt:
     """
@@ -64,6 +65,22 @@ Follow these rules:
   Argo, or cloud-specific commands in the TrainingSpec.
 - Do not add fields that are not part of the TrainingSpec contract.
 
+FEATURE RESOLUTION RULES:
+
+- Use the DatasetProfile to determine the type of each eligible feature.
+- The Planner must resolve eligible features into numerical and categorical
+  feature lists in the proposed TrainingSpec.
+- Do not infer a feature type when the DatasetProfile does not provide
+  sufficient information.
+- The numerical and categorical lists must not overlap.
+- Respect the user's feature-selection requirements when constructing
+  these lists.
+- The Compiler will consume these resolved feature lists directly and
+  must not rediscover feature types from the DatasetProfile.
+- The target column must not be included in the feature lists.
+- If include/exclude is used, numerical and categorical must describe the
+  resulting features available to the training pipeline.
+
 IMPORTANT OUTPUT RULES:
 
 Return ONLY valid JSON.
@@ -103,7 +120,9 @@ The proposed_spec MUST use the exact AIForge TrainingSpec field names:
   },
   "features": {
     "include": null,
-    "exclude": []
+    "exclude": [],
+    "numerical": [],
+    "categorical": []
   },
   "preprocessing": {
     "steps": []
@@ -150,6 +169,7 @@ For preprocessing steps, use exactly:
 Return no Markdown fences, no explanation outside the JSON object,
 and no additional root fields.
 """
+
     def build(self, context: PlanningContext) -> PlannerPrompt:
         """
         Build a deterministic prompt from PlanningContext.
@@ -185,11 +205,24 @@ KNOWLEDGE BASE CONTEXT
 ----------------------
 {knowledge_context}
 
+TRAININGSPEC SCHEMA
+-------------------
+{schema_json}
+
 Using the information above, produce a planning result containing:
 
 1. Recommendations explaining important planning decisions.
 2. A proposed TrainingSpec satisfying the AIForge TrainingSpec contract.
 3. Whether the proposed plan requires user approval.
+
+For the proposed TrainingSpec, explicitly resolve the eligible dataset
+features into:
+
+- features.numerical
+- features.categorical
+
+These lists must be derived from the DatasetProfile and must exclude the
+target column.
 """
 
         return PlannerPrompt(
