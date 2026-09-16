@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from xml.parsers.expat import model
 from sklearn.pipeline import Pipeline
 
 
