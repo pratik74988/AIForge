@@ -12,10 +12,7 @@ from __future__ import annotations
 import re
 import json
 from typing import Any
-from urllib import response
-
 from pydantic import ValidationError
-
 from .exceptions import LLMResponseError, PlannerValidationError
 from .models.planner_result import PlannerResult
 

@@ -54,8 +54,21 @@ Follow these rules:
 - Make planning decisions based on the supplied facts and user intent.
 - Use Knowledge Base information as guidance, not as a substitute for
   dataset-specific facts.
-- Recommend preprocessing using framework-agnostic semantic operations.
-- Select a supported model template and algorithm appropriate for the task.
+
+- Use only the following model template identifier: "sklearn".
+- Choose model.algorithm from the registered algorithms for the selected task:
+  - classification: "logistic_regression", "random_forest", "svm"
+  - regression: "linear_regression", "ridge", "lasso", "random_forest"
+  - clustering: "kmeans", "dbscan"
+- Never combine the framework and task into model.template.
+- Use only these preprocessing operation identifiers: "impute", "encode", "scale".
+- For "impute", parameters.strategy must be one of:
+  "mean", "median", "most_frequent", "constant".
+- For "encode", parameters.method must be "one_hot".
+- For "scale", parameters.method must be one of:
+  "standard", "minmax", "robust", "none".
+- Use only these split strategies: "random", "train_test".
+- Treat these identifiers as strict API values, not descriptive labels.
 - Choose evaluation metrics according to the user's stated priorities.
 - Explain important decisions through recommendations.
 - Produce a proposed TrainingSpec that contains only decisions required
@@ -128,7 +141,7 @@ The proposed_spec MUST use the exact AIForge TrainingSpec field names:
     "steps": []
   },
   "split": {
-    "strategy": "random | stratified | group | time",
+    "strategy": "random | train_test",
     "test_size": 0.2,
     "validation_size": 0.1
   },
@@ -166,8 +179,24 @@ For preprocessing steps, use exactly:
   "parameters": {}
 }
 
-Return no Markdown fences, no explanation outside the JSON object,
-and no additional root fields.
+STRICT COLUMN VALUE RULES:
+
+The string value "numeric" is valid.
+
+The string value "categorical" is valid.
+
+The string value "all" is valid.
+
+A list of explicit column names is valid.
+
+The string value "numerical" is INVALID. Never use it.
+
+Do not use any other string values for "columns".
+
+Use "numeric" for numerical features, not "numerical".
+
+Before returning JSON, verify every preprocessing step's "columns"
+value against these rules.
 """
 
     def build(self, context: PlanningContext) -> PlannerPrompt:
