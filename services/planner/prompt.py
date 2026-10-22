@@ -1,0 +1,303 @@
+"""
+Prompt construction for the AIForge Planner.
+
+This module converts PlanningContext into a structured prompt for the
+LLM. It contains no provider-specific SDK code and performs no planning
+itself.
+
+The prompt builder is intentionally deterministic so that the same
+PlanningContext produces the same prompt.
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+
+from .context import PlanningContext
+from .models.planner_result import PlannerResult
+
+
+@dataclass(frozen=True)
+class PlannerPrompt:
+    """
+    Prompt supplied to the LLM.
+
+    Args:
+        system:
+            Instructions defining the LLM's role and output contract.
+
+        user:
+            Planning-specific input containing the user's requirement,
+            DatasetProfile, and retrieved Knowledge Base context.
+    """
+
+    system: str
+    user: str
+
+
+class PlannerPromptBuilder:
+    """Build prompts for the AIForge Planner LLM."""
+
+    SYSTEM_PROMPT = """\
+You are the AIForge ML Planning Engine.
+
+Your job is to design an ML training plan from:
+1. The user's machine-learning requirement.
+2. Facts produced by the Dataset Analyzer.
+3. Relevant Knowledge Base guidance.
+
+Follow these rules:
+
+- Treat Dataset Analyzer information as factual observations.
+- Do not invent dataset facts that are not provided.
+- Make planning decisions based on the supplied facts and user intent.
+- Use Knowledge Base information as guidance, not as a substitute for
+  dataset-specific facts.
+
+- Use only the following model template identifier: "sklearn".
+- Choose model.algorithm from the registered algorithms for the selected task:
+  - classification: "logistic_regression", "random_forest", "svm"
+  - regression: "linear_regression", "ridge", "lasso", "random_forest"
+  - clustering: "kmeans", "dbscan"
+- Never combine the framework and task into model.template.
+- Use only these preprocessing operation identifiers: "impute", "encode", "scale".
+- For "impute", parameters.strategy must be one of:
+  "mean", "median", "most_frequent", "constant".
+- For "encode", parameters.method must be "one_hot".
+- For "scale", parameters.method must be one of:
+  "standard", "minmax", "robust", "none".
+- Use only these split strategies: "random", "train_test".
+- Treat these identifiers as strict API values, not descriptive labels.
+- Choose evaluation metrics according to the user's stated priorities.
+- Explain important decisions through recommendations.
+- Produce a proposed TrainingSpec that contains only decisions required
+  by the TrainingSpec schema.
+- Do not include framework-specific implementation classes in preprocessing.
+- Do not include execution infrastructure such as Docker, Kubernetes,
+  Argo, or cloud-specific commands in the TrainingSpec.
+- Do not add fields that are not part of the TrainingSpec contract.
+
+FEATURE RESOLUTION RULES:
+
+- Use the DatasetProfile to determine the type of each eligible feature.
+- The Planner must resolve eligible features into numerical and categorical
+  feature lists in the proposed TrainingSpec.
+- Do not infer a feature type when the DatasetProfile does not provide
+  sufficient information.
+- The numerical and categorical lists must not overlap.
+- Respect the user's feature-selection requirements when constructing
+  these lists.
+- The Compiler will consume these resolved feature lists directly and
+  must not rediscover feature types from the DatasetProfile.
+- The target column must not be included in the feature lists.
+- If include/exclude is used, numerical and categorical must describe the
+  resulting features available to the training pipeline.
+
+IMPORTANT OUTPUT RULES:
+
+Return ONLY valid JSON.
+
+The root JSON object MUST contain exactly these fields:
+
+{
+  "recommendations": [...],
+  "proposed_spec": {...},
+  "requires_approval": true
+}
+
+Each recommendation MUST contain exactly these fields:
+
+{
+  "type": "preprocessing | model | evaluation | split | features | resources",
+  "title": "short title",
+  "reasoning": "why this decision is appropriate",
+  "decision": "the actual decision",
+  "requires_approval": true
+}
+
+Do NOT use:
+- category
+- description
+- rationale
+
+for recommendations.
+
+The proposed_spec MUST use the exact AIForge TrainingSpec field names:
+
+{
+  "spec_version": "1.0",
+  "task": {
+    "type": "classification | regression | clustering",
+    "target": "target column"
+  },
+  "features": {
+    "include": null,
+    "exclude": [],
+    "numerical": [],
+    "categorical": []
+  },
+  "preprocessing": {
+    "steps": []
+  },
+  "split": {
+    "strategy": "random | train_test",
+    "test_size": 0.2,
+    "validation_size": 0.1
+  },
+  "model": {
+    "template": "template name",
+    "algorithm": "algorithm name",
+    "hyperparameters": {}
+  },
+  "evaluation": {
+    "primary_metric": "metric",
+    "metrics": []
+  },
+  "resources": {
+    "cpu": null,
+    "memory": null,
+    "gpu": false,
+    "max_runtime_minutes": null
+  },
+  "reproducibility": {
+    "random_seed": 42
+  }
+}
+
+Do NOT use "training_spec" as the root field name.
+Use "proposed_spec".
+
+Do NOT invent alternative field names.
+
+For preprocessing steps, use exactly:
+
+{
+  "name": "step name",
+  "operation": "operation",
+  "columns": "numeric | categorical | all | [column names]",
+  "parameters": {}
+}
+
+STRICT COLUMN VALUE RULES:
+
+The string value "numeric" is valid.
+
+The string value "categorical" is valid.
+
+The string value "all" is valid.
+
+A list of explicit column names is valid.
+
+The string value "numerical" is INVALID. Never use it.
+
+Do not use any other string values for "columns".
+
+Use "numeric" for numerical features, not "numerical".
+
+Before returning JSON, verify every preprocessing step's "columns"
+value against these rules.
+"""
+
+    def build(self, context: PlanningContext) -> PlannerPrompt:
+        """
+        Build a deterministic prompt from PlanningContext.
+
+        Args:
+            context: Complete planning context.
+
+        Returns:
+            A PlannerPrompt containing system and user messages.
+        """
+        dataset_profile = self._serialize_dataset_profile(
+            context.dataset_profile
+        )
+
+        knowledge_context = self._serialize_knowledge_context(context)
+
+        schema_json = json.dumps(
+            PlannerResult.model_json_schema(),
+            indent=2,
+            ensure_ascii=False,
+        )
+
+        user_prompt = f"""\
+USER REQUIREMENT
+----------------
+{context.user_requirement}
+
+DATASET PROFILE
+---------------
+{dataset_profile}
+
+KNOWLEDGE BASE CONTEXT
+----------------------
+{knowledge_context}
+
+TRAININGSPEC SCHEMA
+-------------------
+{schema_json}
+
+Using the information above, produce a planning result containing:
+
+1. Recommendations explaining important planning decisions.
+2. A proposed TrainingSpec satisfying the AIForge TrainingSpec contract.
+3. Whether the proposed plan requires user approval.
+
+For the proposed TrainingSpec, explicitly resolve the eligible dataset
+features into:
+
+- features.numerical
+- features.categorical
+
+These lists must be derived from the DatasetProfile and must exclude the
+target column.
+"""
+
+        return PlannerPrompt(
+            system=self.SYSTEM_PROMPT,
+            user=user_prompt,
+        )
+
+    @staticmethod
+    def _serialize_dataset_profile(dataset_profile: object) -> str:
+        """
+        Serialize DatasetProfile into readable JSON.
+
+        DatasetProfile is expected to be a Pydantic model, but accepting
+        object here keeps this layer independent from the Analyzer's
+        package location.
+        """
+        if hasattr(dataset_profile, "model_dump"):
+            data = dataset_profile.model_dump(mode="json")
+        elif isinstance(dataset_profile, dict):
+            data = dataset_profile
+        else:
+            raise TypeError(
+                "dataset_profile must be a Pydantic model or dictionary."
+            )
+
+        return json.dumps(
+            data,
+            indent=2,
+            ensure_ascii=False,
+            default=str,
+        )
+
+    @staticmethod
+    def _serialize_knowledge_context(
+        context: PlanningContext,
+    ) -> str:
+        """Serialize retrieved Knowledge Base context."""
+        if not context.knowledge_context.items:
+            return "No additional Knowledge Base context was retrieved."
+
+        lines = []
+
+        for index, item in enumerate(
+            context.knowledge_context.items,
+            start=1,
+        ):
+            lines.append(f"[{index}] {item}")
+
+        return "\n".join(lines)
