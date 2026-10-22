@@ -1,8 +1,12 @@
 from __future__ import annotations
+
+from pathlib import Path
+
 from dotenv import load_dotenv
 
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(_REPO_ROOT / ".env")
 load_dotenv()
-from pathlib import Path
 
 from .config import PlannerConfig
 from .in_memory_retriever import InMemoryKnowledgeRetriever

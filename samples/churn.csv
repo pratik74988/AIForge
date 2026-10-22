@@ -1,0 +1,16 @@
+age,income,city,tenure_months,churn
+21,30000,Pune,4,0
+35,50000,Mumbai,18,1
+42,70000,Pune,36,0
+29,42000,Nashik,9,0
+51,90000,Mumbai,48,1
+38,65000,Pune,24,1
+27,35000,Nashik,6,0
+46,80000,Mumbai,40,1
+33,48000,Pune,14,0
+55,95000,Mumbai,60,1
+24,32000,Pune,3,0
+41,72000,Nashik,30,0
+37,61000,Mumbai,22,1
+31,44000,Pune,11,0
+49,88000,Mumbai,44,1
