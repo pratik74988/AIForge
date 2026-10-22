@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from dataset_analyzer.profile.models import DatasetProfile
@@ -9,6 +10,8 @@ from planner.models.planner_result import PlannerResult
 from planner.models.training_spec import TrainingSpec
 from policy.compliance import check_compliance
 from compiler.compiler import PipelineCompiler
+
+_KNOWLEDGE_BASE = Path(__file__).resolve().parents[2] / "knowledge-base"
 
 
 def _resolve_feature_types(
@@ -91,7 +94,8 @@ def plan_pipeline(
         dataset_profile=profile,
     )
 
-    planner = create_planner()
+    knowledge_path = _KNOWLEDGE_BASE if _KNOWLEDGE_BASE.is_dir() else None
+    planner = create_planner(knowledge_base_path=knowledge_path)
     result = planner.plan(context)
 
     resolved_spec = _resolve_feature_types(
