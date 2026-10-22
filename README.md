@@ -64,8 +64,6 @@ AIForge-main/
 └── README.md
 ```
 
-> Some folders and infrastructure integrations are placeholders or are still being implemented. The exact contents of the repository should be treated as the source of truth.
-
 ## Technology stack
 
 | Area | Technologies |
@@ -77,7 +75,7 @@ AIForge-main/
 | Dataset ingestion | CSV, SQL, MongoDB connectors are present in the dataset-analyzer package |
 | Quality and testing | pytest, Ruff, ESLint |
 
-The planner and other modules may use external model providers or services. Configure the environment variables required by your local setup before running the complete workflow.
+
 
 ## Prerequisites
 
@@ -91,11 +89,11 @@ The planner and other modules may use external model providers or services. Conf
 ### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone <https://github.com/pratik74988/AIForge>
 cd AIForge-main
 ```
 
-Replace `<repository-url>` with the URL of your Git repository.
+
 
 ### 2. Configure environment variables
 
@@ -111,11 +109,10 @@ Copy-Item .env.example .env
 cp .env.example .env
 ```
 
-Do not commit `.env` or real API keys to source control. Only configure credentials for integrations you actually use. Check the planner and service configuration to confirm which variables are required.
+
 
 ### 3. Install Python dependencies
 
-The repository uses multiple Python packages/projects. Install the relevant projects in editable mode from the repository root:
 
 ```bash
 uv pip install -e ./dataset-analyzer
@@ -123,11 +120,10 @@ uv pip install -e ./ml-templates/registry
 uv pip install -e ./ml-templates/sklearn
 ```
 
-The API also imports modules from `services`, `planner`, `policy`, and `compiler`. Check each project's `pyproject.toml` and package layout, and install any additional dependencies or workspace packages required by your branch. If your branch defines a root workspace or service-specific dependency file, follow that configuration instead.
 
 ### 4. Start the backend API
 
-From the repository root, make sure the Python environment contains the required API dependencies and that the local package imports resolve, then run:
+
 
 ```bash
 uvicorn services.api.main:app --reload
@@ -147,8 +143,6 @@ A successful health check returns:
   "service": "aiforge-api"
 }
 ```
-
-If startup fails because a module or dependency cannot be found, check the package installation and imports for `planner`, `policy`, and `compiler` before proceeding.
 
 ### 5. Start the frontend
 
